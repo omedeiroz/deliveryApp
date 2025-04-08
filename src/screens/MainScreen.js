@@ -1,79 +1,72 @@
-import React from "react"
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from "react-native"
-import { useNavigation } from "@react-navigation/native"
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const MainScreen = () => {
-  const navigation = useNavigation()
+  const navigation = useNavigation();
 
-  return React.createElement(
-    View,
-    { style: styles.container },
-    React.createElement(StatusBar, { barStyle: "light-content" }),
-    React.createElement(Text, { style: styles.title }, "Sistema de Rotas"),
-    React.createElement(
-      View,
-      { style: styles.buttonContainer },
-      React.createElement(
-        TouchableOpacity,
-        {
-          style: [styles.button, styles.minhasRotasButton],
-          onPress: () => navigation.navigate("MinhasRotas"),
-        },
-        React.createElement(Text, { style: styles.buttonText }, "Minhas Rotas"),
-      ),
-      React.createElement(
-        TouchableOpacity,
-        {
-          style: [styles.button, styles.novaRotaButton],
-          onPress: () => navigation.navigate("NovaRota"),
-        },
-        React.createElement(Text, { style: styles.buttonText }, "Iniciar Nova Rota"),
-      ),
-    ),
-  )
-}
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Sistema de Rotas</Text>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.button, styles.minhasRotasButton]}
+          onPress={() => navigation.navigate('MinhasRotas')}
+        >
+          <Text style={styles.buttonText}>Minhas Rotas</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, styles.novaRotaButton]}
+          onPress={() => navigation.navigate('NovaRota')}
+        >
+          <Text style={styles.buttonText}>Iniciar Nova Rota</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 40,
-    color: "#333",
+    color: '#333',
   },
   buttonContainer: {
-    width: "100%",
+    width: '100%',
     maxWidth: 300,
   },
   button: {
     paddingVertical: 15,
     borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 20,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
   minhasRotasButton: {
-    backgroundColor: "#4a6da7",
+    backgroundColor: '#4a6da7',
   },
   novaRotaButton: {
-    backgroundColor: "#2e9e5b",
+    backgroundColor: '#2e9e5b',
   },
   buttonText: {
-    color: "white",
+    color: 'white',
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
-})
+});
 
 export default MainScreen;
