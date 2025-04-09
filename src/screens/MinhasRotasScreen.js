@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
   FlatList, 
   TouchableOpacity, 
-  Alert, 
   ActivityIndicator,
   SafeAreaView,
-  StatusBar,
   RefreshControl,
-  Image
+  Image,
+  StyleSheet
 } from 'react-native';
 import { subscribeToRoutes, deleteRoute } from '../database/database';
 import { useIsFocused } from '@react-navigation/native';
@@ -44,28 +42,20 @@ const MinhasRotasScreen = ({ navigation }) => {
     loadRotas();
   };
 
-  const handleDeleteRota = async (id) => {
+  const handleDeleteRota = (id) => {
     Alert.alert(
-      'Excluir Rota',
+      'Confirmar exclusão',
       'Tem certeza que deseja excluir esta rota?',
       [
+        { text: 'Cancelar', style: 'cancel' },
         { 
-          text: 'Cancelar', 
-          style: 'cancel' 
-        },
-        {
-          text: 'Excluir',
+          text: 'Excluir', 
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteRoute(id);
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível excluir a rota.');
-            }
-          },
-        },
-      ],
-      { cancelable: true }
+          onPress: () => deleteRoute(id).catch(() => {
+            Alert.alert('Erro', 'Não foi possível excluir a rota');
+          })
+        }
+      ]
     );
   };
 
@@ -73,75 +63,47 @@ const MinhasRotasScreen = ({ navigation }) => {
     if (!date) return '--/--/----';
     try {
       const jsDate = date.toDate ? date.toDate() : new Date(date);
-      return jsDate.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
+      return jsDate.toLocaleDateString('pt-BR');
     } catch {
       return '--/--/----';
     }
   };
 
-  const renderRotaItem = ({ item, index }) => {
-    const numeroRota = rotas.length - index;
-    
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.routeIcon}>
-            <Icon name="local-shipping" size={24} color="#4a6da7" />
-          </View>
-          <Text style={styles.cardTitle}>Rota #{numeroRota}</Text>
-          <Text style={styles.cardDate}>{formatDate(item.data)}</Text>
-          <TouchableOpacity 
-            style={styles.deleteButton}
-            onPress={() => handleDeleteRota(item.id)}
-          >
-            <Icon name="delete-outline" size={24} color="#ff6b6b" />
-          </TouchableOpacity>
+  const renderRotaItem = ({ item, index }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.routeIcon}>
+          <Icon name="local-shipping" size={24} color="#4a6da7" />
         </View>
-        
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Icon name="location-pin" size={18} color="#4a6da7" />
-            <Text style={styles.statValue}>{item.quantidade_paradas}</Text>
-            <Text style={styles.statLabel}>Paradas</Text>
-          </View>
-          
-          <View style={styles.statItem}>
-            <Icon name="inventory" size={18} color="#4a6da7" />
-            <Text style={styles.statValue}>{item.quantidade_pacotes}</Text>
-            <Text style={styles.statLabel}>Pacotes</Text>
-          </View>
-          
-          <View style={styles.statItem}>
-            <Icon name="check-circle" size={18} color="#4a6da7" />
-            <Text style={styles.statValue}>{item.pacotes_entregues}</Text>
-            <Text style={styles.statLabel}>Entregues</Text>
-          </View>
-        </View>
-        
-        <View style={styles.progressContainer}>
-          <View style={styles.progressTextContainer}>
-            <Text style={styles.progressLabel}>Progresso de entrega:</Text>
-            <Text style={styles.progressPercentage}>
-              {Math.round((item.pacotes_entregues / item.quantidade_pacotes) * 100)}%
-            </Text>
-          </View>
-          <View style={styles.progressBarBackground}>
-            <View style={[
-              styles.progressBarFill,
-              {
-                width: `${(item.pacotes_entregues / item.quantidade_pacotes) * 100}%`,
-                backgroundColor: item.pacotes_entregues === item.quantidade_pacotes ? '#2ecc71' : '#3498db',
-              }
-            ]} />
-          </View>
-        </View>
+        <Text style={styles.cardTitle}>Rota #{rotas.length - index}</Text>
+        <Text style={styles.cardDate}>{formatDate(item.criado_em)}</Text>
+        <TouchableOpacity onPress={() => handleDeleteRota(item.id)}>
+          <Icon name="delete-outline" size={24} color="#ff6b6b" />
+        </TouchableOpacity>
       </View>
-    );
-  };
+      
+      <View style={styles.statsContainer}>
+        <StatItem icon="location-pin" value={item.quantidade_paradas} label="Paradas" />
+        <StatItem icon="inventory" value={item.quantidade_pacotes} label="Pacotes" />
+        <StatItem icon="check-circle" value={item.pacotes_entregues} label="Entregues" />
+      </View>
+      
+      <ProgressBar 
+        entregues={item.pacotes_entregues} 
+        total={item.quantidade_pacotes} 
+      />
+      
+      <TouchableOpacity 
+        style={styles.detailsButton}
+        onPress={() => navigation.navigate('RegistrarEntrega', {
+          rotaId: item.id,
+          totalPacotes: item.quantidade_pacotes
+        })}
+      >
+        <Text style={styles.detailsButtonText}>Continuar Entrega</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   if (loading && !refreshing) {
     return (
@@ -153,8 +115,6 @@ const MinhasRotasScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar backgroundColor="#4a6da7" barStyle="light-content" />
-      
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>Minhas Rotas</Text>
@@ -167,32 +127,18 @@ const MinhasRotasScreen = ({ navigation }) => {
         </View>
         
         {rotas.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Image
-              style={styles.emptyImage}
-            />
-            <Text style={styles.emptyTitle}>Nenhuma rota cadastrada</Text>
-            <Text style={styles.emptySubtitle}>Toque no botão "+" para adicionar uma nova rota</Text>
-            <TouchableOpacity 
-              style={styles.emptyButton}
-              onPress={() => navigation.navigate('NovaRota')}
-            >
-              <Text style={styles.emptyButtonText}>Criar Primeira Rota</Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState onPress={() => navigation.navigate('NovaRota')} />
         ) : (
           <FlatList
             data={rotas}
             renderItem={renderRotaItem}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
                 colors={['#4a6da7']}
-                tintColor="#4a6da7"
               />
             }
           />
@@ -201,6 +147,51 @@ const MinhasRotasScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
+// Componentes auxiliares
+const StatItem = ({ icon, value, label }) => (
+  <View style={styles.statItem}>
+    <Icon name={icon} size={18} color="#4a6da7" />
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
+const ProgressBar = ({ entregues, total }) => {
+  const percentage = Math.round((entregues / total) * 100);
+  
+  return (
+    <View style={styles.progressContainer}>
+      <View style={styles.progressTextContainer}>
+        <Text style={styles.progressLabel}>Progresso:</Text>
+        <Text style={styles.progressPercentage}>{percentage}%</Text>
+      </View>
+      <View style={styles.progressBarBackground}>
+        <View style={[
+          styles.progressBarFill,
+          { 
+            width: `${percentage}%`,
+            backgroundColor: percentage === 100 ? '#2ecc71' : '#3498db',
+          }
+        ]} />
+      </View>
+    </View>
+  );
+};
+
+const EmptyState = ({ onPress }) => (
+  <View style={styles.emptyContainer}>
+    <Image
+      source={require('../assets/empty-routes.png')}
+      style={styles.emptyImage}
+    />
+    <Text style={styles.emptyTitle}>Nenhuma rota cadastrada</Text>
+    <Text style={styles.emptySubtitle}>Comece criando sua primeira rota de entregas</Text>
+    <TouchableOpacity style={styles.emptyButton} onPress={onPress}>
+      <Text style={styles.emptyButtonText}>Criar Rota</Text>
+    </TouchableOpacity>
+  </View>
+);
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -387,3 +378,62 @@ const styles = StyleSheet.create({
 });
 
 export default MinhasRotasScreen;
+// const renderRotaItem = ({ item, index }) => {
+//   const numeroRota = rotas.length - index;
+  
+//   return (
+//     <View style={styles.card}>
+//       <View style={styles.cardHeader}>
+//         <View style={styles.routeIcon}>
+//           <Icon name="local-shipping" size={24} color="#4a6da7" />
+//         </View>
+//         <Text style={styles.cardTitle}>Rota #{numeroRota}</Text>
+//         <Text style={styles.cardDate}>{formatDate(item.data)}</Text>
+//         <TouchableOpacity 
+//           style={styles.deleteButton}
+//           onPress={() => handleDeleteRota(item.id)}
+//         >
+//           <Icon name="delete-outline" size={24} color="#ff6b6b" />
+//         </TouchableOpacity>
+//       </View>
+      
+//       <View style={styles.statsContainer}>
+//         <View style={styles.statItem}>
+//           <Icon name="location-pin" size={18} color="#4a6da7" />
+//           <Text style={styles.statValue}>{item.quantidade_paradas}</Text>
+//           <Text style={styles.statLabel}>Paradas</Text>
+//         </View>
+        
+//         <View style={styles.statItem}>
+//           <Icon name="inventory" size={18} color="#4a6da7" />
+//           <Text style={styles.statValue}>{item.quantidade_pacotes}</Text>
+//           <Text style={styles.statLabel}>Pacotes</Text>
+//         </View>
+        
+//         <View style={styles.statItem}>
+//           <Icon name="check-circle" size={18} color="#4a6da7" />
+//           <Text style={styles.statValue}>{item.pacotes_entregues}</Text>
+//           <Text style={styles.statLabel}>Entregues</Text>
+//         </View>
+//       </View>
+      
+//       <View style={styles.progressContainer}>
+//         <View style={styles.progressTextContainer}>
+//           <Text style={styles.progressLabel}>Progresso de entrega:</Text>
+//           <Text style={styles.progressPercentage}>
+//             {Math.round((item.pacotes_entregues / item.quantidade_pacotes) * 100)}%
+//           </Text>
+//         </View>
+//         <View style={styles.progressBarBackground}>
+//           <View style={[
+//             styles.progressBarFill,
+//             {
+//               width: `${(item.pacotes_entregues / item.quantidade_pacotes) * 100}%`,
+//               backgroundColor: item.pacotes_entregues === item.quantidade_pacotes ? '#2ecc71' : '#3498db',
+//             }
+//           ]} />
+//         </View>
+//       </View>
+//     </View>
+//   );
+// };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text, Alert } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, Alert, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { getFirestore, disableNetwork, enableNetwork } from 'firebase/firestore';
@@ -8,69 +8,67 @@ import NetInfo from '@react-native-community/netinfo';
 import MainScreen from './src/screens/MainScreen';
 import MinhasRotasScreen from './src/screens/MinhasRotasScreen';
 import NovaRotaScreen from './src/screens/NovaRotaScreen';
+import RegistrarEntregaScreen from './src/screens/RegistrarEntregaScreen';
+
+// Configuração de logs
+LogBox.ignoreLogs(['Firebase']);
 
 const Stack = createStackNavigator();
 
 const App = () => {
   const [firebaseReady, setFirebaseReady] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState(true);
-  const [error, setError] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState(null);
+  const [showNetworkAlert, setShowNetworkAlert] = useState(true);
 
   useEffect(() => {
-    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const wasOffline = connectionStatus === false;
+      const isNowOnline = state.isConnected;
+      
       setConnectionStatus(state.isConnected);
+      
+      if (wasOffline && isNowOnline && showNetworkAlert) {
+        Alert.alert('✅ Conexão restaurada', 'Sincronizando dados...');
+      } else if (!isNowOnline && showNetworkAlert) {
+        Alert.alert('⚠️ Modo offline', 'Dados serão sincronizados quando a conexão voltar');
+      }
     });
 
-    return () => unsubscribeNetInfo();
-  }, []);
+    return () => unsubscribe();
+  }, [connectionStatus, showNetworkAlert]);
 
   useEffect(() => {
     const initializeFirebase = async () => {
       try {
-        if (!app) {
-          throw new Error('Configuração do Firebase não encontrada');
-        }
-
         const db = getFirestore(app);
+        const state = await NetInfo.fetch();
         
-        if (!connectionStatus) {
+        if (!state.isConnected) {
           await disableNetwork(db);
-          console.log('Modo offline ativado');
         } else {
           await enableNetwork(db);
-          console.log('Modo online ativado');
         }
 
         setFirebaseReady(true);
       } catch (err) {
-        console.error('Erro na inicialização:', err);
-        setError(err.message);
+        Alert.alert('Erro crítico', 'Falha na inicialização do sistema');
+        console.error('Initialization error:', err);
       }
     };
 
     initializeFirebase();
-  }, [connectionStatus]);
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorTitle}>Erro de Conexão</Text>
-        <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.solutionText}>
-          {connectionStatus 
-            ? 'Verifique suas credenciais do Firebase' 
-            : 'Sem conexão com a internet - Modo offline ativado'}
-        </Text>
-      </View>
-    );
-  }
+  }, []);
 
   if (!firebaseReady) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4a6da7" />
         <Text style={styles.loadingText}>
-          {connectionStatus ? 'Conectando ao servidor...' : 'Iniciando modo offline...'}
+          {connectionStatus === null 
+            ? 'Inicializando sistema...' 
+            : connectionStatus 
+              ? 'Conectando aos servidores...' 
+              : 'Carregando modo offline...'}
         </Text>
       </View>
     );
@@ -79,32 +77,20 @@ const App = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Main"
         screenOptions={{
-          headerStyle: {
-            backgroundColor: '#4a6da7',
-          },
+          headerStyle: { backgroundColor: '#4a6da7' },
           headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
+          headerTitleStyle: { fontWeight: 'bold' },
           headerBackTitleVisible: false,
         }}
       >
-        <Stack.Screen
-          name="Main"
-          component={MainScreen}
-          options={{ title: 'Sistema de Rotas' }}
-        />
-        <Stack.Screen
-          name="MinhasRotas"
-          component={MinhasRotasScreen}
-          options={{ title: 'Minhas Rotas' }}
-        />
-        <Stack.Screen
-          name="NovaRota"
-          component={NovaRotaScreen}
-          options={{ title: 'Nova Rota' }}
+        <Stack.Screen name="Main" component={MainScreen} options={{ title: 'Início' }} />
+        <Stack.Screen name="MinhasRotas" component={MinhasRotasScreen} options={{ title: 'Minhas Rotas' }} />
+        <Stack.Screen name="NovaRota" component={NovaRotaScreen} options={{ title: 'Nova Rota' }} />
+        <Stack.Screen 
+          name="RegistrarEntrega" 
+          component={RegistrarEntregaScreen} 
+          options={{ title: 'Registrar Entrega' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
@@ -122,30 +108,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: '#333',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#ffebee',
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#d32f2f',
-    marginBottom: 10,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#d32f2f',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  solutionText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
   },
 });
 

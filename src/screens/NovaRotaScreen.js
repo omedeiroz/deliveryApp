@@ -1,150 +1,135 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet,
+  Alert,
+  ActivityIndicator
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { addRoute } from '../database/database';
 
 const NovaRotaScreen = ({ navigation }) => {
-  const [quantidadeParadas, setQuantidadeParadas] = useState('');
-  const [quantidadePacotes, setQuantidadePacotes] = useState('');
-  const [pacotesEntregues, setPacotesEntregues] = useState('0');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paradas, setParadas] = useState('');
+  const [pacotes, setPacotes] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSalvarRota = async () => {
-    if (!quantidadeParadas || !quantidadePacotes) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
+  const handleIniciarRota = async () => {
+    if (!paradas || !pacotes) {
+      Alert.alert('Atenção', 'Preencha todos os campos');
       return;
     }
 
-    const paradas = parseInt(quantidadeParadas);
-    const pacotes = parseInt(quantidadePacotes);
-    const entregues = parseInt(pacotesEntregues || '0');
+    const numParadas = Number(paradas);
+    const numPacotes = Number(pacotes);
 
-    if (isNaN(paradas) || isNaN(pacotes) || isNaN(entregues)) {
-      Alert.alert('Erro', 'Os valores devem ser números válidos.');
+    if (numParadas < 1 || numPacotes < 1) {
+      Alert.alert('Valores inválidos', 'Os números devem ser maiores que zero');
       return;
     }
-
-    if (entregues > pacotes) {
-      Alert.alert('Erro', 'Pacotes entregues não podem ser maiores que o total.');
-      return;
-    }
-
-    setIsSubmitting(true);
 
     try {
-      await addRoute(paradas, pacotes, entregues);
-      Alert.alert('Sucesso', 'Rota cadastrada com sucesso!', [
-        { 
-          text: 'OK', 
-          onPress: () => navigation.navigate('MinhasRotas') 
-        }
-      ]);
+      setLoading(true);
+      const rotaId = await addRoute(numParadas, numPacotes);
+      navigation.navigate('RegistrarEntrega', { 
+        rotaId, 
+        totalPacotes: numPacotes 
+      });
     } catch (error) {
-      console.error('Erro ao salvar rota:', error);
-      let errorMessage = 'Ocorreu um erro ao salvar a rota.';
-      
-      if (error.code === 'permission-denied') {
-        errorMessage = 'Sem permissão para salvar. Verifique suas credenciais.';
-      } else if (error.code === 'unavailable') {
-        errorMessage = 'Sem conexão com o servidor. Tente novamente mais tarde.';
-      }
-      
-      Alert.alert('Erro', errorMessage);
+      Alert.alert('Erro', error.message);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
- 
-
-return (
-  <View style={styles.container}>
-    <Text style={styles.title}>Nova Rota</Text>
-
-    <Text style={styles.label}>Quantidade de Paradas*</Text>
-    <TextInput
-      style={styles.input}
-      value={quantidadeParadas}
-      onChangeText={setQuantidadeParadas}
-      placeholder="Número de paradas"
-      keyboardType="numeric"
-      editable={!isSubmitting}
-    />
-
-    <Text style={styles.label}>Quantidade de Pacotes*</Text>
-    <TextInput
-      style={styles.input}
-      value={quantidadePacotes}
-      onChangeText={setQuantidadePacotes}
-      placeholder="Número de pacotes"
-      keyboardType="numeric"
-      editable={!isSubmitting}
-    />
-
-    <Text style={styles.label}>Pacotes já Entregues</Text>
-    <TextInput
-      style={styles.input}
-      value={pacotesEntregues}
-      onChangeText={setPacotesEntregues}
-      placeholder="0"
-      keyboardType="numeric"
-      editable={!isSubmitting}
-    />
-
-    <TouchableOpacity
-      style={[styles.button, isSubmitting && styles.buttonDisabled]}
-      onPress={handleSalvarRota}
-      disabled={isSubmitting}
-    >
-      <Text style={styles.buttonText}>
-        {isSubmitting ? 'Salvando...' : 'Salvar Rota'}
-      </Text>
-    </TouchableOpacity>
-  </View>
-);
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Criar Nova Rota</Text>
+      
+      <View style={styles.inputContainer}>
+        <Icon name="location-on" size={24} color="#4a6da7" />
+        <TextInput
+          placeholder="Número de paradas"
+          keyboardType="numeric"
+          value={paradas}
+          onChangeText={setParadas}
+          style={styles.input}
+        />
+      </View>
+      
+      <View style={styles.inputContainer}>
+        <Icon name="inventory" size={24} color="#4a6da7" />
+        <TextInput
+          placeholder="Total de pacotes"
+          keyboardType="numeric"
+          value={pacotes}
+          onChangeText={setPacotes}
+          style={styles.input}
+        />
+      </View>
+      
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleIniciarRota}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <>
+            <Icon name="directions-car" size={24} color="#fff" />
+            <Text style={styles.buttonText}>Iniciar Rota</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-container: {
-  flex: 1,
-  padding: 20,
-  backgroundColor: '#f5f5f5',
-},
-title: {
-  fontSize: 24,
-  fontWeight: 'bold',
-  color: '#2e9e5b',
-  marginBottom: 20,
-  textAlign: 'center',
-},
-label: {
-  fontSize: 16,
-  marginBottom: 5,
-  color: '#333',
-},
-input: {
-  backgroundColor: '#fff',
-  borderWidth: 1,
-  borderColor: '#ddd',
-  borderRadius: 5,
-  padding: 10,
-  marginBottom: 15,
-  fontSize: 16,
-},
-button: {
-  backgroundColor: '#2e9e5b',
-  padding: 15,
-  borderRadius: 5,
-  alignItems: 'center',
-  marginTop: 10,
-},
-buttonDisabled: {
-  backgroundColor: '#cccccc',
-},
-buttonText: {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: 'bold',
-},
+  container: {
+    flex: 1,
+    padding: 25,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 30,
+    color: '#2c3e50',
+    textAlign: 'center',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    marginBottom: 20,
+  },
+  input: {
+    flex: 1,
+    padding: 15,
+    fontSize: 16,
+  },
+  button: {
+    backgroundColor: '#4a6da7',
+    padding: 15,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
 });
 
 export default NovaRotaScreen;
