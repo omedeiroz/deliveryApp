@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { app } from './src/config/firebaseConfig'; // Ajuste o caminho conforme sua estrutura
+import { getFirestore, disableNetwork, enableNetwork } from 'firebase/firestore';
+import { app } from './src/database/firebaseConfig';
+import NetInfo from '@react-native-community/netinfo';
 import MainScreen from './src/screens/MainScreen';
 import MinhasRotasScreen from './src/screens/MinhasRotasScreen';
 import NovaRotaScreen from './src/screens/NovaRotaScreen';
@@ -12,47 +13,53 @@ const Stack = createStackNavigator();
 
 const App = () => {
   const [firebaseReady, setFirebaseReady] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const initializeApp = async () => {
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      setConnectionStatus(state.isConnected);
+    });
+
+    return () => unsubscribeNetInfo();
+  }, []);
+
+  useEffect(() => {
+    const initializeFirebase = async () => {
       try {
-        // Verificação robusta da inicialização do Firebase
         if (!app) {
-          throw new Error('Configuração do Firebase não carregada corretamente');
+          throw new Error('Configuração do Firebase não encontrada');
         }
 
         const db = getFirestore(app);
         
-        // Teste de conexão com o Firestore
-        try {
-          await getDocs(collection(db, 'connection_test'));
-        } catch (testError) {
-          console.warn('Teste de conexão com Firestore:', testError);
+        if (!connectionStatus) {
+          await disableNetwork(db);
+          console.log('Modo offline ativado');
+        } else {
+          await enableNetwork(db);
+          console.log('Modo online ativado');
         }
 
         setFirebaseReady(true);
       } catch (err) {
-        console.error('Erro na inicialização do Firebase:', err);
+        console.error('Erro na inicialização:', err);
         setError(err.message);
-        Alert.alert(
-          'Erro de Inicialização', 
-          'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.',
-          [{ text: 'OK', onPress: () => console.log('Alert closed') }]
-        );
       }
     };
 
-    initializeApp();
-  }, []);
+    initializeFirebase();
+  }, [connectionStatus]);
 
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorTitle}>Erro no Aplicativo</Text>
+        <Text style={styles.errorTitle}>Erro de Conexão</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.instructions}>
-          Por favor, reinicie o aplicativo. Se o problema persistir, entre em contato com o suporte.
+        <Text style={styles.solutionText}>
+          {connectionStatus 
+            ? 'Verifique suas credenciais do Firebase' 
+            : 'Sem conexão com a internet - Modo offline ativado'}
         </Text>
       </View>
     );
@@ -62,7 +69,9 @@ const App = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4a6da7" />
-        <Text style={styles.loadingText}>Inicializando serviços...</Text>
+        <Text style={styles.loadingText}>
+          {connectionStatus ? 'Conectando ao servidor...' : 'Iniciando modo offline...'}
+        </Text>
       </View>
     );
   }
@@ -133,7 +142,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  instructions: {
+  solutionText: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',

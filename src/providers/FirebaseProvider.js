@@ -17,8 +17,8 @@ export const FirebaseProvider = ({ children }) => {
                 databaseURL: "https://deliveryapp-67c05.firebaseio.com",
                 projectId: "deliveryapp-67c05",
                 storageBucket: "deliveryapp-67c05.appspot.com",
-                messagingSenderId: "123456789",
-                appId: "1:123456789:web:abc123def456"
+                messagingSenderId: "47300083520",
+                appId: "1:47300083520:android:eab0cda708e6c46e6004a5"
             };
 
             const firebaseApp = initializeApp(firebaseConfig);

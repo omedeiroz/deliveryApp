@@ -31,107 +31,120 @@ const NovaRotaScreen = ({ navigation }) => {
     setIsSubmitting(true);
 
     try {
-      await addRoute(paradas, new Date().toISOString(), pacotes, entregues);
+      await addRoute(paradas, pacotes, entregues);
       Alert.alert('Sucesso', 'Rota cadastrada com sucesso!', [
-        { text: 'OK', onPress: () => navigation.navigate('MinhasRotas') }
+        { 
+          text: 'OK', 
+          onPress: () => navigation.navigate('MinhasRotas') 
+        }
       ]);
     } catch (error) {
-      console.error('Error saving route:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao salvar a rota.');
+      console.error('Erro ao salvar rota:', error);
+      let errorMessage = 'Ocorreu um erro ao salvar a rota.';
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = 'Sem permissão para salvar. Verifique suas credenciais.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Sem conexão com o servidor. Tente novamente mais tarde.';
+      }
+      
+      Alert.alert('Erro', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Nova Rota</Text>
+ 
 
-      <Text style={styles.label}>Quantidade de Paradas*</Text>
-      <TextInput
-        style={styles.input}
-        value={quantidadeParadas}
-        onChangeText={setQuantidadeParadas}
-        placeholder="Número de paradas"
-        keyboardType="numeric"
-        editable={!isSubmitting}
-      />
+return (
+  <View style={styles.container}>
+    <Text style={styles.title}>Nova Rota</Text>
 
-      <Text style={styles.label}>Quantidade de Pacotes*</Text>
-      <TextInput
-        style={styles.input}
-        value={quantidadePacotes}
-        onChangeText={setQuantidadePacotes}
-        placeholder="Número de pacotes"
-        keyboardType="numeric"
-        editable={!isSubmitting}
-      />
+    <Text style={styles.label}>Quantidade de Paradas*</Text>
+    <TextInput
+      style={styles.input}
+      value={quantidadeParadas}
+      onChangeText={setQuantidadeParadas}
+      placeholder="Número de paradas"
+      keyboardType="numeric"
+      editable={!isSubmitting}
+    />
 
-      <Text style={styles.label}>Pacotes já Entregues</Text>
-      <TextInput
-        style={styles.input}
-        value={pacotesEntregues}
-        onChangeText={setPacotesEntregues}
-        placeholder="0"
-        keyboardType="numeric"
-        editable={!isSubmitting}
-      />
+    <Text style={styles.label}>Quantidade de Pacotes*</Text>
+    <TextInput
+      style={styles.input}
+      value={quantidadePacotes}
+      onChangeText={setQuantidadePacotes}
+      placeholder="Número de pacotes"
+      keyboardType="numeric"
+      editable={!isSubmitting}
+    />
 
-      <TouchableOpacity
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
-        onPress={handleSalvarRota}
-        disabled={isSubmitting}
-      >
-        <Text style={styles.buttonText}>
-          {isSubmitting ? 'Salvando...' : 'Salvar Rota'}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
+    <Text style={styles.label}>Pacotes já Entregues</Text>
+    <TextInput
+      style={styles.input}
+      value={pacotesEntregues}
+      onChangeText={setPacotesEntregues}
+      placeholder="0"
+      keyboardType="numeric"
+      editable={!isSubmitting}
+    />
+
+    <TouchableOpacity
+      style={[styles.button, isSubmitting && styles.buttonDisabled]}
+      onPress={handleSalvarRota}
+      disabled={isSubmitting}
+    >
+      <Text style={styles.buttonText}>
+        {isSubmitting ? 'Salvando...' : 'Salvar Rota'}
+      </Text>
+    </TouchableOpacity>
+  </View>
+);
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2e9e5b',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 5,
-    color: '#333',
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#2e9e5b',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonDisabled: {
-    backgroundColor: '#cccccc',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+container: {
+  flex: 1,
+  padding: 20,
+  backgroundColor: '#f5f5f5',
+},
+title: {
+  fontSize: 24,
+  fontWeight: 'bold',
+  color: '#2e9e5b',
+  marginBottom: 20,
+  textAlign: 'center',
+},
+label: {
+  fontSize: 16,
+  marginBottom: 5,
+  color: '#333',
+},
+input: {
+  backgroundColor: '#fff',
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 5,
+  padding: 10,
+  marginBottom: 15,
+  fontSize: 16,
+},
+button: {
+  backgroundColor: '#2e9e5b',
+  padding: 15,
+  borderRadius: 5,
+  alignItems: 'center',
+  marginTop: 10,
+},
+buttonDisabled: {
+  backgroundColor: '#cccccc',
+},
+buttonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
 });
 
 export default NovaRotaScreen;

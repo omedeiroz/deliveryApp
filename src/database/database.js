@@ -1,22 +1,26 @@
-import { db } from './firebaseConfig';
-import {
-  collection,
-  addDoc,
-  getDocs,
-  doc,
-  updateDoc,
-  deleteDoc,
-  orderBy,
-  query,
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  doc, 
+  updateDoc, 
+  deleteDoc, 
+  query, 
+  orderBy, 
   onSnapshot,
+  serverTimestamp
 } from 'firebase/firestore';
+import { db } from './firebaseConfig';
 
-export const addRoute = async (data) => {
+export const addRoute = async (quantidadeParadas, quantidadePacotes, pacotesEntregues = 0) => {
   try {
     const docRef = await addDoc(collection(db, 'rotas'), {
-      ...data,
-      criado_em: new Date().toISOString(),
-      atualizado_em: new Date().toISOString()
+      quantidade_paradas: quantidadeParadas,
+      quantidade_pacotes: quantidadePacotes,
+      pacotes_entregues: pacotesEntregues,
+      data: serverTimestamp(),
+      criado_em: serverTimestamp(),
+      atualizado_em: serverTimestamp()
     });
     return docRef.id;
   } catch (error) {
@@ -29,7 +33,7 @@ export const updateRoute = async (id, data) => {
   try {
     await updateDoc(doc(db, 'rotas', id), {
       ...data,
-      atualizado_em: new Date().toISOString()
+      atualizado_em: serverTimestamp()
     });
   } catch (error) {
     console.error("Error updating document: ", error);
@@ -62,5 +66,7 @@ export const subscribeToRoutes = (callback) => {
   return onSnapshot(q, (snapshot) => {
     const routes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     callback(routes);
+  }, (error) => {
+    console.error("Subscription error:", error);
   });
 };
