@@ -10,7 +10,6 @@ import MinhasRotasScreen from './src/screens/MinhasRotasScreen';
 import NovaRotaScreen from './src/screens/NovaRotaScreen';
 import RegistrarEntregaScreen from './src/screens/RegistrarEntregaScreen';
 
-// Configuração de logs
 LogBox.ignoreLogs(['Firebase']);
 
 const Stack = createStackNavigator();

@@ -7,7 +7,9 @@ import {
   Image, 
   Alert,
   ActivityIndicator,
-  TextInput
+  TextInput,
+  PermissionsAndroid,
+  Platform
 } from 'react-native';
 import { launchCamera } from 'react-native-image-picker';
 import { registerDelivery } from '../database/database';
@@ -20,15 +22,47 @@ const RegistrarEntregaScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [observacoes, setObservacoes] = useState('');
 
+  const requestCameraPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        ]);
+        
+        if (
+          granted['android.permission.CAMERA'] === PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.WRITE_EXTERNAL_STORAGE'] === PermissionsAndroid.RESULTS.GRANTED
+        ) {
+          return true;
+        } else {
+          Alert.alert('Permissões necessárias', 'Você precisa conceder permissões para usar a câmera');
+          return false;
+        }
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const tirarFoto = async () => {
     setLoading(true);
     
     try {
+      const hasPermission = await requestCameraPermission();
+      if (!hasPermission) {
+        setLoading(false);
+        return;
+      }
+
       const result = await launchCamera({
         mediaType: 'photo',
         quality: 0.8,
         saveToPhotos: true,
-        cameraType: 'back'
+        cameraType: 'back',
+        includeBase64: false,
       });
 
       if (result.didCancel) {
@@ -36,17 +70,31 @@ const RegistrarEntregaScreen = ({ route, navigation }) => {
         return;
       }
 
+      if (result.errorCode) {
+        Alert.alert('Erro', result.errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      if (!result.assets || result.assets.length === 0) {
+        setLoading(false);
+        return;
+      }
+
       await registerDelivery(rotaId, result.assets[0].uri, observacoes);
-      setEntregasRegistradas(e => e + 1);
+      setEntregasRegistradas(e => {
+        const newCount = e + 1;
+        if (newCount >= totalPacotes) {
+          Alert.alert('Rota concluída!', 'Todas as entregas foram registradas', [
+            { text: 'OK', onPress: () => navigation.goBack() }
+          ]);
+        }
+        return newCount;
+      });
       setFotoAtual(result.assets[0].uri);
       setObservacoes('');
-      
-      if (entregasRegistradas + 1 >= totalPacotes) {
-        Alert.alert('Rota concluída!', 'Todas as entregas foram registradas');
-        navigation.goBack();
-      }
     } catch (error) {
-      Alert.alert('Erro', error.message);
+      Alert.alert('Erro', error.message || 'Ocorreu um erro ao registrar a entrega');
     } finally {
       setLoading(false);
     }

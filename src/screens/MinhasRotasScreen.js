@@ -8,7 +8,8 @@ import {
   SafeAreaView,
   RefreshControl,
   Image,
-  StyleSheet
+  StyleSheet,
+  Alert
 } from 'react-native';
 import { subscribeToRoutes, deleteRoute } from '../database/database';
 import { useIsFocused } from '@react-navigation/native';
@@ -148,7 +149,6 @@ const MinhasRotasScreen = ({ navigation }) => {
   );
 };
 
-// Componentes auxiliares
 const StatItem = ({ icon, value, label }) => (
   <View style={styles.statItem}>
     <Icon name={icon} size={18} color="#4a6da7" />
@@ -182,7 +182,6 @@ const ProgressBar = ({ entregues, total }) => {
 const EmptyState = ({ onPress }) => (
   <View style={styles.emptyContainer}>
     <Image
-      source={require('../assets/empty-routes.png')}
       style={styles.emptyImage}
     />
     <Text style={styles.emptyTitle}>Nenhuma rota cadastrada</Text>
@@ -378,6 +377,11 @@ const styles = StyleSheet.create({
 });
 
 export default MinhasRotasScreen;
+
+// Outra tela -----------
+
+
+
 // const renderRotaItem = ({ item, index }) => {
 //   const numeroRota = rotas.length - index;
   
